@@ -6,6 +6,8 @@ package org.firstinspires.ftc.teamcode;
 import static java.lang.Math.abs;
 import static java.lang.Math.atan2;
 import static java.lang.Math.cos;
+import static java.lang.Math.max;
+import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
 import static java.lang.Math.toDegrees;
 import static java.lang.Math.toRadians;
@@ -25,7 +27,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-/** @noinspection ALL*/
 @Config
 public class DriveHardware {
     //define motors as existing
@@ -33,11 +34,11 @@ public class DriveHardware {
 
     private IMU imu;
 
-    double heading;
+    public static double heading;
 
     public static double desiredHeading;
 
-    int timesAcrossZero;
+    static public int timesAcrossZero;
 
     double fixedHeading;
 
@@ -77,10 +78,14 @@ public class DriveHardware {
     double lastError = 0;
     double integralSum = 0;
 
+    public static boolean fieldCentric = true;
+    boolean justTurbo = false;
+
     ElapsedTime PIDTimer = new ElapsedTime();
 
     //This function assigns hardware malfing and motor behavior
-    public void tankDriveInit(final HardwareMap hMap){ //Certainly none of this was stolen
+    public void tankDriveInit(final HardwareMap hMap){
+        //Certainly none of this was stolen
 
         //use hardware specific inputs to calculate what the encoders need to see
         //if you're using encoders, this is necessary, with arguments of  ints ticksPerRevolution, driveReductionRatio, wheelDia in the function definition
@@ -95,10 +100,10 @@ public class DriveHardware {
         //lr = hardwareMap.get(DcMotorEx.class, "Left Front")
 
         //*dhuughgh* it wurks :P
-        rr = hMap.get(DcMotorEx.class, "frontleft");
-        lf = hMap.get(DcMotorEx.class, "frontright");
-        rf = hMap.get(DcMotorEx.class, "rearleft");
-        lr = hMap.get(DcMotorEx.class, "rearright");
+        rr = hMap.get(DcMotorEx.class, "frontLeft");
+        lf = hMap.get(DcMotorEx.class, "frontRight");
+        rf = hMap.get(DcMotorEx.class, "rearLeft");
+        lr = hMap.get(DcMotorEx.class, "rearRight");
 
         //Here you can edit the individual motor headings
         lr.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -145,8 +150,6 @@ public class DriveHardware {
         if (isNegative) {
             turn = turn*-1;
         }
-
-        //hopefully when right bumper pressed, toggle halr speed
         if (!turbo) {
             turn = turn/2;
             power = power/2;
@@ -160,43 +163,8 @@ public class DriveHardware {
 
 
     }
-    public void mecanumDriveInit(final HardwareMap hMap){ //Most definitely none of this was stolen
-
-        //use hardware specific inputs to calculate what the encoders need to see
-        //if you're using encoders, this is necessary, with arguments of  ints ticksPerRevolution, driveReductionRatio, wheelDia in the function definition
-
-
-
-        //Here you can choose to brake or coast
-        DcMotor.ZeroPowerBehavior zeroPower = DcMotor.ZeroPowerBehavior.BRAKE;
-
-
-        //*dhuughgh* it wurks :P
-        rr = hMap.get(DcMotorEx.class, "rearright");
-        lf = hMap.get(DcMotorEx.class, "frontleft");
-        rf = hMap.get(DcMotorEx.class, "frontright");
-        lr = hMap.get(DcMotorEx.class, "rearleft");
-
-        //Here you can edit the individual motor headings
-        lr.setDirection(DcMotorSimple.Direction.REVERSE);
-        rf.setDirection(DcMotorSimple.Direction.FORWARD);
-        lf.setDirection(DcMotorSimple.Direction.REVERSE);
-        rr.setDirection(DcMotorSimple.Direction.FORWARD);
-
-        lr.setZeroPowerBehavior(zeroPower);
-        rf.setZeroPowerBehavior(zeroPower);
-        lf.setZeroPowerBehavior(zeroPower);
-        rr.setZeroPowerBehavior(zeroPower);
-
-        lr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rf.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lf.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rf.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        lf.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
+    public void mecanumDriveInit(final HardwareMap hMap){
+        //Most definitely none of this was stolen
         //hardware map IMU
         imu = hMap.get(IMU.class, "imu");
         angles = imu.getRobotOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES); //poll IMU
@@ -212,15 +180,47 @@ public class DriveHardware {
     //This function is designed solely for teleop useage, I hope once everything is tuned I'll make a function to directly
     //pass in direction and power and turn
     void mecanumDriveUpdateV2 (Gamepad gamepad, Telemetry telemetry) {
-        double desiredPower = Range.scale(sqrt(gamepad.left_stick_x*gamepad.left_stick_x+gamepad.left_stick_y*gamepad.left_stick_y), 0, sqrt(2), 0, 1); //convert the diagonal of the sticks to magnitude
+        double xPwr;
+        //get x value from active thumbstick, or if both are active, average them
+        if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
+            xPwr = gamepad.left_stick_x;
+        } else {
+            if (gamepad.left_stick_x != 0) {
+                if (gamepad.right_stick_x == 0) {
+                    xPwr = gamepad.left_stick_x;
+                } else {
+                    xPwr = (gamepad.left_stick_x + gamepad.right_stick_x) / 2;
+                }
+            } else {
+                xPwr = gamepad.right_stick_x;
+            }
+        }
+        double yPwr = 0;
+        //disable right joystick y when depositing, its needed for height adjustment
+        if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
+            yPwr = gamepad.left_stick_y;
+        } else {
+            //get y power from active thumbstick(s)
+            if (gamepad.left_stick_y != 0) {
+                if (gamepad.right_stick_y == 0) {
+                    yPwr = gamepad.left_stick_y;
+                } else {
+                    yPwr = (gamepad.left_stick_y + gamepad.right_stick_y)/2;
+                }
+            } else {
+                yPwr = gamepad.right_stick_y;
+            }
+        }
+        double desiredPower = Range.scale(sqrt(xPwr*xPwr+yPwr*yPwr), 0, sqrt(2), 0, 1); //convert the diagonal of the sticks to magnitude
         double turn;
 
 
-
-        if (gamepad.right_bumper){
-            desiredHeading += gamepad.right_stick_x*-5;
+        boolean turbo = (gamepad.left_stick_button || gamepad.right_stick_button);
+        float rotate = (gamepad.right_trigger - gamepad.left_trigger);//controller turn input
+        if (turbo){
+            desiredHeading += rotate*-4;
         } else {
-            desiredHeading += gamepad.right_stick_x*-1;
+            desiredHeading += rotate*-2;
         }
 
 
@@ -232,8 +232,19 @@ public class DriveHardware {
             transientSpeed += (desiredPower - transientSpeed)*rampSpeed;
         }
 
-
-        double direction = (toDegrees(atan2(gamepad.left_stick_x, gamepad.left_stick_y))); //convert sticks to angle
+        double direction;
+        //find out which sticks are active, and use those
+        if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
+            direction = (toDegrees(atan2(gamepad.left_stick_x, gamepad.left_stick_y))); //convert sticks to angle
+        } else {
+            if ((gamepad.left_stick_x != 0 || gamepad.left_stick_y != 0) && (gamepad.right_stick_x == 0 && gamepad.right_stick_y == 0)) {
+                direction = (toDegrees(atan2(gamepad.left_stick_x, gamepad.left_stick_y))); //convert sticks to angle
+            } else if ((gamepad.right_stick_x != 0 || gamepad.right_stick_y != 0) && (gamepad.left_stick_x == 0 && gamepad.left_stick_y == 0)) {
+                direction = (toDegrees(atan2(gamepad.right_stick_x, gamepad.right_stick_y))); //convert sticks to angle
+            } else {
+                direction = (toDegrees((atan2(gamepad.left_stick_x, gamepad.left_stick_y) + atan2(gamepad.right_stick_x, gamepad.right_stick_y)) / 2)); //convert sticks to angle
+            }
+        }
 
         //All the field centric stuff is right here, copy/pasted from the last code but never really tested
         //I HOPE THIS WORKS, CUZ I DIDNT VERIFY IT
@@ -241,6 +252,15 @@ public class DriveHardware {
         double lastHeading = heading;
         angles = imu.getRobotOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES); //poll IMU
         heading = angles.firstAngle; //extract heading
+
+        //apply alliance side offset
+        /*if (Base.alliance) {
+            heading = (heading +90) % 180;
+        } else {
+            heading = (heading - 90) % 180;
+        }*/
+        telemetry.addData("Heading:", heading);
+
         //the below direction tracking code is inspired by VCSC
         //I could make this dynamic, where the controller tracks the time between calls and calculates the max possible rotation in that time
         if (heading - lastHeading > 270) {
@@ -249,13 +269,20 @@ public class DriveHardware {
             timesAcrossZero++;
         }
 
-        fixedHeading = heading+(timesAcrossZero*360);
-        direction = ((direction - fixedHeading)+360)%360; //augment joystick command with IMU direction, keeping within the range of 360
+        //make sure to apply alliance offset in reverse to this, so that changing alliance doesn't affect heading correction
+        /*if (Base.alliance) {
+            fixedHeading = heading + (timesAcrossZero * 360) - 90;
+        } else {
+            fixedHeading = heading + (timesAcrossZero * 360) + 90;
+        }*/fixedHeading = heading + (timesAcrossZero * 360);
+        if (fieldCentric) { //when field centric, rotate control with IMU
+            direction = ((direction - fixedHeading) + 360) % 360; //augment joystick command with IMU direction, keeping within the range of 360
+        }
 
-        if (gamepad.right_stick_x == 0 && justTurned) {
+        if (rotate == 0 && justTurned) {
             desiredHeading = fixedHeading;
         }
-        justTurned = gamepad.right_stick_x != 0;
+        justTurned = rotate != 0;
 
         //the below PID stuff doesn't seem to work, disalfointingly
 
@@ -281,52 +308,46 @@ public class DriveHardware {
 
         //Mecanum wheel diagonals spin the same direction, except when turning
         //set the powers of rf and lf, and lr and lf
-        rightDiagPwr = (Range.clip((1.4*cos(toRadians(direction) + 3.1415/4)), -1, 1))*transientSpeed;
+        /*rightDiagPwr = (Range.clip((1.4*cos(toRadians(direction) + 3.1415/4)), -1, 1))*transientSpeed;
         leftDiagPwr = (Range.clip((1.4*cos(toRadians(direction) - 3.1415/4)), -1, 1))*transientSpeed;
 
 
-        //as it is, this code allows turning to fully override other motion. Maybe change that
         //what it does is scales down the drive power depending on how much it wants to turn, then adds turn to the scaled value
         //recently added is when the voltage dips
-        double RFPwr = ((leftDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))+transientTurn)/*Base.powerMultiplier*/;
-        double lfPwr = ((rightDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))-transientTurn)/*Base.powerMultiplier*/;
-        double lrPwr = ((leftDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))-transientTurn)/*Base.powerMultiplier*/;
-        double RRPwr = ((rightDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))+transientTurn)/*Base.powerMultiplier*/;
+        double RFPwr = ((leftDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))+transientTurn)*Base.powerMultiplier;
+        double lfPwr = ((rightDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))-transientTurn)*Base.powerMultiplier;
+        double lrPwr = ((leftDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))-transientTurn)*Base.powerMultiplier;
+        double RRPwr = ((rightDiagPwr*(1-Range.clip(abs(transientTurn),0,turnOverride)))+transientTurn)*Base.powerMultiplier;*/
+
+        //Thanks to Gm0 for this code
+        double straight = transientSpeed*cos((-heading)-direction);
+        double strafe = transientSpeed*sin((-heading)-direction)*1.1;
+        double denominator = Double.max(abs(straight) + abs(strafe) + abs(turn), 1);
+        double RFPwr = (straight - turn + strafe)/denominator;
+        double lfPwr = (straight + turn - strafe)/denominator;
+        double lrPwr = (straight - turn - strafe)/denominator;
+        double RRPwr = (straight + turn + strafe)/denominator;
 
         //Alfly final values to motors, with power and turbo modifiers
-        if (gamepad.right_bumper) {
-            rf.setPower(RFPwr/2);
-            lf.setPower(lfPwr/2);
-            lr.setPower(lrPwr/2);
-            rr.setPower(RRPwr/2);
+        if (turbo) {
+            RFPwr /= 2;
+            lfPwr /= 2;
+            lrPwr /= 2;
+            RRPwr /= 2;
+            justTurbo = false;
         } else {
-            rf.setPower(RFPwr);
-            lf.setPower(lfPwr);//for now, turbo button activates turning, fix that later when is all working
-            lr.setPower(lrPwr);
-            rr.setPower(RRPwr);
-            /*telemetry.addData("RFPWR", RFPwr);
-            telemetry.addData("lfPWR", lfPwr);
-            telemetry.addData("lrPWR", lrPwr);
-            telemetry.addData("RRPWR", RRPwr);*/
+            if (!justTurbo) {
+                desiredHeading = fixedHeading + rotate;
+            }
+            justTurbo = true;
         }
-        //telemetry.addData("rightDiagPwr", rightDiagPwr);
-        //telemetry.addData("transientSpeed", transientSpeed);
+        //send values to base class for output
+        Base.rfPwr = (RFPwr);
+        Base.lfPwr = (lfPwr);
+        Base.lrPwr = (lrPwr);
+        Base.rrPwr = (RRPwr);
+
+        telemetry.addData("direction", direction);
         telemetry.addData("desiredPower", desiredPower);
-        telemetry.addData("IMU heading", angles.firstAngle);
-
-        //Allow resetting of orientation, only run once per press
-
-        if (!resetDown && gamepad.a) {
-            imu.resetYaw(); //zero out gyro
-            timesAcrossZero = 0; //zero out software
-            desiredHeading = 0;
-            Localization.X = 0;
-            Localization.Y = 0;
-            Localization.heading = 0;
-            resetDown = true;
-        } else if (!gamepad.a) {
-            resetDown = false;
-        }
     }
-
 }

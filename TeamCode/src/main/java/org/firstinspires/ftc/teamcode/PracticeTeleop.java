@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name = "MecanumTeleop")
+@TeleOp(name = "MecanumTeleop", group = "W is for Wolfpack")
 public class PracticeTeleop extends LinearOpMode {//Make sure the class extends OpMode
     @Override
     public void runOpMode() throws InterruptedException {
@@ -14,26 +14,27 @@ public class PracticeTeleop extends LinearOpMode {//Make sure the class extends 
         mecanumDrive = new DriveHardware();
         mecanumDrive.mecanumDriveInit(hardwareMap);
 
-        Localization whereAmI;
-        whereAmI = new Localization();
-        whereAmI.locaInit(hardwareMap);
+        Kinematics whereAmI;
+        whereAmI = new Kinematics();
+        //whereAmI.ArmKineInit(telemetry); // run all computations and check for errors
 
 
         telemetry.addLine("Robot initialized");
         telemetry.update();
         waitForStart();
 
+        //The integral factor winds up without this
+        robot.elbowPID.reset();
+        robot.shoulderPID.reset();
 
         while(opModeIsActive()){
-            robot.update(telemetry);
+            robot.update(telemetry); //update sensors and telemetry
+            robot.stateMachine(gamepad1, gamepad2, telemetry);//convert controls to action
+            robot.motorManage(); //convert targets to motor signals
 
             //drive the robot
-            mecanumDrive.mecanumDriveUpdateV2(gamepad1, telemetry);
-            whereAmI.encoderUpdate(telemetry);
-            telemetry.addData("EncoderHeading", whereAmI.heading);
-            telemetry.addData("EncoderX", whereAmI.X);
-            telemetry.addData("EncoderY", whereAmI.Y);
-            telemetry.update();
+            mecanumDrive.mecanumDriveUpdateV2(gamepad1, telemetry); //handle drive-specific computation
+            whereAmI.encoderUpdate(); //update drive kinematics
         }
     }
 }

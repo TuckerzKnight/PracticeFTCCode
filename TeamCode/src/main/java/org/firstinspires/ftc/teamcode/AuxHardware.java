@@ -1,3 +1,5 @@
+//This code is deprecated. Please view Base.java to find management code
+
 //Code for controlling non-drive motors should go here
 
 package org.firstinspires.ftc.teamcode;
