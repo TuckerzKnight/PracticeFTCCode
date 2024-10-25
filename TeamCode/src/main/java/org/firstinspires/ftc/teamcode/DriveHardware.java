@@ -180,9 +180,9 @@ public class DriveHardware {
     //This function is designed solely for teleop useage, I hope once everything is tuned I'll make a function to directly
     //pass in direction and power and turn
     void mecanumDriveUpdateV2 (Gamepad gamepad, Telemetry telemetry) {
-        double xPwr;
+        double xPwr = gamepad.left_stick_x;
         //get x value from active thumbstick, or if both are active, average them
-        if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
+        /*if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
             xPwr = gamepad.left_stick_x;
         } else {
             if (gamepad.left_stick_x != 0) {
@@ -194,10 +194,10 @@ public class DriveHardware {
             } else {
                 xPwr = gamepad.right_stick_x;
             }
-        }
-        double yPwr = 0;
+        }*/
+        double yPwr = gamepad.left_stick_y;
         //disable right joystick y when depositing, its needed for height adjustment
-        if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
+        /*if (Base.state == Base.State.DEPOSIT || Base.state == Base.State.BACKPUT) {
             yPwr = gamepad.left_stick_y;
         } else {
             //get y power from active thumbstick(s)
@@ -210,12 +210,12 @@ public class DriveHardware {
             } else {
                 yPwr = gamepad.right_stick_y;
             }
-        }
+        }*/
         double desiredPower = Range.scale(sqrt(xPwr*xPwr+yPwr*yPwr), 0, sqrt(2), 0, 1); //convert the diagonal of the sticks to magnitude
         double turn;
 
 
-        boolean turbo = (gamepad.left_stick_button || gamepad.right_stick_button);
+        boolean turbo = (gamepad.left_stick_button /*|| gamepad.right_stick_button*/);
         float rotate = (gamepad.right_trigger - gamepad.left_trigger);//controller turn input
         if (turbo){
             desiredHeading += rotate*-4;

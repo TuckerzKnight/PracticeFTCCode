@@ -161,17 +161,17 @@ public class Base {
         myControlHubVoltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
 
         //global hardware definitions
-        roll = hardwareMap.get(Servo.class, "rollServo");
+        /*roll = hardwareMap.get(Servo.class, "rollServo");
         dl = hardwareMap.get(Servo.class, "diffyLeft");
-        dr = hardwareMap.get(Servo.class, "diffyRight");
+        dr = hardwareMap.get(Servo.class, "diffyRight");*/
         lf = hardwareMap.get(DcMotorEx.class, "frontLeft");
         rf = hardwareMap.get(DcMotorEx.class, "frontRight");
         lr = hardwareMap.get(DcMotorEx.class, "rearLeft");
         rr = hardwareMap.get(DcMotorEx.class, "rearRight");
-        sl = hardwareMap.get(DcMotorEx.class, "shoulderLeft");
+        /*sl = hardwareMap.get(DcMotorEx.class, "shoulderLeft");
         sr = hardwareMap.get(DcMotorEx.class, "shoulderRight");
         el = hardwareMap.get(DcMotorEx.class, "elbowLeft");
-        er = hardwareMap.get(DcMotorEx.class, "elbowRight");
+        er = hardwareMap.get(DcMotorEx.class, "elbowRight");*/
 
 
         //rollSwitch = hardwareMap.get(DigitalChannel.class, "rollSwitch");
@@ -190,18 +190,18 @@ public class Base {
         rf.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         lf.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        er.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        /*er.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         el.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         sl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        sr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        sr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);*/
         lr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rf.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         lf.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        sl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        /*sl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         sr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         el.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        er.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        er.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);*/
 
         lr.setZeroPowerBehavior(zeroPower);
         rf.setZeroPowerBehavior(zeroPower);
@@ -211,9 +211,9 @@ public class Base {
         state = State.IDLE;
 
         //zero out claw.
-        dl.setPosition(0);
+        /*dl.setPosition(0);
         dr.setPosition(0);
-        roll.setPosition(0);
+        roll.setPosition(0);*/
 
     }
 
@@ -223,28 +223,28 @@ public class Base {
         lrPos = lr.getCurrentPosition();
         rfPos = rf.getCurrentPosition();
         rrPos = rr.getCurrentPosition();
-        slPos = -sl.getCurrentPosition();
+        /*slPos = -sl.getCurrentPosition();
         srPos = sr.getCurrentPosition();
         elPos = el.getCurrentPosition();
-        erPos = er.getCurrentPosition();
+        erPos = er.getCurrentPosition();*/
 
         //rollState = !rollSwitch.getState(); //rollSwitch.getState = false when triggered, true when not
 
         //kinematics formatting, input your actuator position (or average multiple)
-        jointPositions = new double [] {((slPos + srPos)/2), ((elPos + erPos)/2), wristPitch}; //lol beware, if garbage collector doesn't catch this then memory leak
+        //jointPositions = new double [] {((slPos + srPos)/2), ((elPos + erPos)/2), wristPitch}; //lol beware, if garbage collector doesn't catch this then memory leak
 
         lf.setPower(lfPwr);
         lr.setPower(lrPwr);
         rf.setPower(rfPwr);
         rr.setPower(rrPwr);
-        sl.setPower(-shoulderPwr);
+        /*sl.setPower(-shoulderPwr);
         sr.setPower(shoulderPwr);
         el.setPower(elbowPwr);
         er.setPower(elbowPwr);
 
         roll.setPosition(rollPos);
         dl.setPosition(dlPos);
-        dr.setPosition(drPos);
+        dr.setPosition(drPos);*/
 
         presentVoltage = myControlHubVoltageSensor.getVoltage();
 
@@ -258,7 +258,7 @@ public class Base {
         voltageHistory[cycleNum%voltageHistoryLength] = presentVoltage;
         cycleNum++;
 
-        if (errorCode == 1) {
+        /*if (errorCode == 1) {
             telemetry.addLine("Default!");
         } else if (errorCode == 2) {
             telemetry.addLine("Roll range IK failed");
@@ -270,18 +270,18 @@ public class Base {
         telemetry.addData("elbowPwr", elbowPwr);
         telemetry.addData("shoulderError", shoulderError);
         telemetry.addData("shoulderTarget", shoulderTarget);
-        telemetry.addData("shoulderPwr", shoulderPwr);
+        telemetry.addData("shoulderPwr", shoulderPwr);*/
         telemetry.addData("state", state);
         telemetry.update();
         TelemetryPacket packet = new TelemetryPacket();
-        packet.put("elbowTarget", elbowTarget);
-        packet.put("el ticks:", elPos);
+        /*packet.put("elbowTarget", elbowTarget);
+        packet.put("el ticks:", elPos);*/
         packet.put("heading", DriveHardware.heading);
-        packet.put("clawState", clawState);
+        /*packet.put("clawState", clawState);
         packet.fieldOverlay()
                         .setFill("blue")
                                 .fillRect((Kinematics.X-Kinematics.robotwidth),(Kinematics.Y-Kinematics.robotwidth),40,40)
-                                        .strokeCircle(100,100,5);
+                                        .strokeCircle(100,100,5);*/
         dashboard.sendTelemetryPacket(packet);
 
     }
