@@ -88,26 +88,28 @@ public class ConceptAprilTag extends LinearOpMode {
 
         // Wait for the DS start button to be touched.
         telemetry.addData("DS preview on/off", "3 dots, Camera Stream");
-        telemetry.addData(">", "Touch START to start OpMode");
+        telemetry.addData(">", "Touch Play to start OpMode");
         telemetry.update();
         waitForStart();
 
-        while (opModeIsActive()) {
+        if (opModeIsActive()) {
+            while (opModeIsActive()) {
 
-            telemetryAprilTag();
+                telemetryAprilTag();
 
-            // Push telemetry to the Driver Station.
-            telemetry.update();
+                // Push telemetry to the Driver Station.
+                telemetry.update();
 
-            // Save CPU resources; can resume streaming when needed.
-            if (gamepad1.dpad_down) {
-                visionPortal.stopStreaming();
-            } else if (gamepad1.dpad_up) {
-                visionPortal.resumeStreaming();
+                // Save CPU resources; can resume streaming when needed.
+                if (gamepad1.dpad_down) {
+                    visionPortal.stopStreaming();
+                } else if (gamepad1.dpad_up) {
+                    visionPortal.resumeStreaming();
+                }
+
+                // Share the CPU.
+                sleep(20);
             }
-
-            // Share the CPU.
-            sleep(20);
         }
 
         // Save more CPU resources when camera is no longer needed.
